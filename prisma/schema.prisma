@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  hashedPassword       String
+  emailAddress         String   @unique
+  emailAddressVerified Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  AuthSession         AuthSession[]
+  PasswordResetTokens PasswordResetTokens[]
+  TwoFactorAuthTokens TwoFactorAuthTokens[]
+  @@index([emailAddress])
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String
+  ipAddress String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([id])
+  @@index([userId])
+}
+
+model PasswordResetTokens {
+  hashedToken String   @id
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenExpiry DateTime
+
+  @@index([userId])
+}
+
+enum TwoFactorStrategy {
+  AUTHENTICATOR
+}
+
+model TwoFactorAuthTokens {
+  userId   String            @id
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret   String
+  strategy TwoFactorStrategy
+}
