@@ -5,14 +5,17 @@ import {
   LoaderFunction,
   MetaFunction,
   useActionData,
+  useLoaderData,
   useTransition,
 } from "remix";
+import AppShell from "~/components/AppShell";
 import {
   authenticateUser,
   updateUserPassword,
 } from "~/utils/auth/authSession.server";
 import { requireUser } from "~/utils/auth/user.server";
 import { badRequest } from "~/utils/net";
+import { db } from "~/utils/prisma.server";
 
 export const meta: MetaFunction = () => {
   return {
@@ -25,7 +28,13 @@ export const loader: LoaderFunction = async ({ request }) => {
     request,
     "/signin?redirectTo=/auth/update-password"
   );
-  return json({ user }, { headers: newResponseHeaders });
+  const has2fa = await db.twoFactorAuthTokens.findFirst({
+    where: {
+      userId: user.id,
+    },
+  });
+
+  return json({ user, has2fa: !!has2fa }, { headers: newResponseHeaders });
 };
 
 export const action: ActionFunction = async ({ request }) => {
@@ -36,6 +45,7 @@ export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const currentPassword = formData.get("currentPassword");
   const newPassword = formData.get("newPassword");
+  const token = formData.get("token");
 
   const fieldErrors = { newPassword: "", currentPassword: "" };
 
@@ -51,16 +61,12 @@ export const action: ActionFunction = async ({ request }) => {
     return badRequest({ fieldErrors });
   }
 
-  const { userId } = await authenticateUser({
-    email: user.emailAddress,
-    rawPassword: currentPassword,
-  });
-
-  if (userId) {
+  try {
     const success = await updateUserPassword(
       user.emailAddress,
       currentPassword,
-      newPassword
+      newPassword,
+      token
     );
     if (success) {
       return json({ success }, { headers: newResponseHeaders });
@@ -72,23 +78,37 @@ export const action: ActionFunction = async ({ request }) => {
           "Error updating password. Check your current password and try again.",
       });
     }
-  } else {
-    console.log("/////76");
-    return badRequest({
-      formError:
-        "Error updating password. Check your current password and try again.",
-    });
+  } catch (error: any) {
+    if (error?.errorType) {
+      switch (error.errorType) {
+        case "INCORRECT_PASSWORD":
+          return json({
+            fieldErrors: { currentPassword: "Incorrect password" },
+          });
+        case "MISSING_TOKEN":
+          return json({
+            fieldErrors: { token: "Token required" },
+          });
+        case "INVALID_TOKEN":
+          return json({
+            fieldErrors: { token: "Incorrect token" },
+          });
+      }
+    }
+    console.error("error", error);
   }
 };
 
 export default function UpdatePassword() {
   const formData = useActionData();
   const submission = useTransition();
-
-  // TODO: Require 2fa code if user has it
+  const { user, has2fa } = useLoaderData();
+  const disabled =
+    submission.state === "submitting" ||
+    (submission.state === "loading" && submission.type === "actionRedirect");
 
   return (
-    <main className="container">
+    <AppShell user={user}>
       <h1>Update your password!</h1>
       {formData?.formError && <mark>{formData.formError}</mark>}
       <Form method="post">
@@ -101,10 +121,24 @@ export default function UpdatePassword() {
           name="currentPassword"
           autoComplete="current-password"
           aria-invalid={!!formData?.fieldErrors?.currentPassword || undefined}
-          disabled={
-            submission.state === "submitting" || submission.state === "loading"
-          }
+          disabled={disabled}
         />
+        {formData?.fieldErrors?.token && (
+          <mark>{formData.fieldErrors.token}</mark>
+        )}
+        {has2fa && (
+          <>
+            <label htmlFor="token">2FA token</label>
+            <input
+              type="text"
+              name="token"
+              autoComplete="one-time-code"
+              aria-invalid={!!formData?.fieldErrors?.token || undefined}
+              disabled={disabled}
+              required
+            />
+          </>
+        )}
         {formData?.fieldErrors?.newPassword && (
           <mark>{formData.fieldErrors.newPassword}</mark>
         )}
@@ -114,23 +148,13 @@ export default function UpdatePassword() {
           name="newPassword"
           autoComplete="new-password"
           aria-invalid={!!formData?.fieldErrors?.newPassword || undefined}
-          disabled={
-            submission.state === "submitting" || submission.state === "loading"
-          }
+          disabled={disabled}
         />
-        <button
-          type="submit"
-          disabled={
-            submission.state === "submitting" || submission.state === "loading"
-          }
-          aria-busy={
-            submission.state === "submitting" || submission.state === "loading"
-          }
-        >
+        <button type="submit" disabled={disabled} aria-busy={disabled}>
           Save new password
         </button>
       </Form>
       {formData?.success && <p>Your password has been updated.</p>}
-    </main>
+    </AppShell>
   );
 }

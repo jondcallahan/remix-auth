@@ -6,14 +6,15 @@ import { get30DaysFromNow } from "../time";
 import { createAccessToken, createRefreshToken } from "./tokens.server";
 
 export async function signUserIn(
-  userId: string,
+  user: { userId: string; emailAddress: string },
   redirectTo: string,
   request: Request
 ) {
   const headers = new Headers();
+  const { userId, emailAddress } = user;
 
   // Mint a new JWT 🍀
-  const jwt: string = await createAccessToken(userId);
+  const jwt: string = await createAccessToken(userId, emailAddress);
 
   // Add the new JWT to cookies
   const jwtCookie = await getAccessTokenCookie().serialize(jwt);

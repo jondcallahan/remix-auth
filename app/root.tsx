@@ -1,9 +1,6 @@
 import {
-  json,
-  Link,
   Links,
   LiveReload,
-  LoaderFunction,
   Meta,
   Outlet,
   Scripts,
@@ -11,29 +8,14 @@ import {
   useCatch,
   useLoaderData,
 } from "remix";
-import {
-  getUserFromCookies,
-  UserWithoutPassword,
-} from "./utils/auth/user.server";
-
-export const loader: LoaderFunction = async ({ request }) => {
-  // TODO: This loader is causing duplicate requests for the user, how can we combine them???
-  try {
-    const { user, newResponseHeaders } = await getUserFromCookies(request);
-    return json({ user }, { headers: newResponseHeaders });
-  } catch (error) {
-    return null;
-  }
-};
 
 // https://remix.run/api/conventions#default-export
 // https://remix.run/api/conventions#route-filenames
 export default function App() {
-  const { user } = useLoaderData();
   return (
     <Document>
-      <Layout user={user}>
-        <Outlet context={{ user }} />
+      <Layout>
+        <Outlet />
       </Layout>
     </Document>
   );
@@ -129,52 +111,6 @@ function Document({
   );
 }
 
-function Layout({
-  children,
-  user,
-}: {
-  children: React.ReactNode;
-  user?: UserWithoutPassword | null;
-}) {
-  return (
-    <>
-      <nav className="container-fluid">
-        <ul>
-          <li>
-            <Link to="/" className="contrast">
-              Remix Auth Starter
-            </Link>
-          </li>
-        </ul>
-        <ul>
-          {!!user && (
-            <>
-              <li>{user.emailAddress}</li>
-              <li>
-                <Link to="/auth/update-password">Update password</Link>
-              </li>
-              <li>
-                <Link to="/auth/register-2fa">2FA</Link>
-              </li>
-              <li>
-                <Link to="/auth/logout">Sign out</Link>
-              </li>
-            </>
-          )}
-          {!!user || (
-            <>
-              <li>
-                <Link to="/signin">Sign in</Link>
-              </li>
-              <li>
-                <Link to="/signup">Sign up</Link>
-              </li>
-            </>
-          )}
-        </ul>
-      </nav>
-      <hr />
-      {children}
-    </>
-  );
+function Layout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

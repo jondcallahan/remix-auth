@@ -7,6 +7,7 @@ import type { MetaFunction } from "remix";
 import { SignUpSignInForm } from "~/components/SignUpSignInForm";
 import { badRequest } from "~/utils/net";
 import { db } from "~/utils/prisma.server";
+import AppShell from "~/components/AppShell";
 
 export const meta: MetaFunction = () => {
   return {
@@ -68,7 +69,11 @@ export const action: ActionFunction = async ({ request }) => {
           stored2faTokens.secret
         );
         if (isTokenValid) {
-          return await signUserIn(userId, redirectTo, request);
+          return await signUserIn(
+            { userId, emailAddress: email },
+            redirectTo,
+            request
+          );
         } else {
           return json({
             fieldErrors: { token: "Invalid token" },
@@ -77,7 +82,11 @@ export const action: ActionFunction = async ({ request }) => {
         }
       }
     }
-    return await signUserIn(userId, redirectTo, request);
+    return await signUserIn(
+      { userId, emailAddress: email },
+      redirectTo,
+      request
+    );
   } else {
     return badRequest({
       formError: "Invalid password or incorrect email address",
@@ -87,10 +96,10 @@ export const action: ActionFunction = async ({ request }) => {
 
 export default function Signin() {
   return (
-    <main className="container">
+    <AppShell>
       <h1>Sign in to our App!</h1>
       <SignUpSignInForm buttonText="Sign in!" />
       <a href="/auth/forgot-password">Forgot password?</a>
-    </main>
+    </AppShell>
   );
 }

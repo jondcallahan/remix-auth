@@ -25,11 +25,11 @@ export function getAccessTokenTimeToLive() {
   return isProd ? 180 : 30;
 }
 
-export async function createAccessToken(userId: string) {
+export async function createAccessToken(userId: string, emailAddress: string) {
   const key = await getJWTSigningKey();
   const expirationTime = `${getAccessTokenTimeToLive()}s`;
 
-  const token = new SignJWT({})
+  const token = new SignJWT({ emailAddress })
     .setProtectedHeader({ alg: "HS512", typ: "jwt" })
     .setIssuedAt()
     .setExpirationTime(expirationTime)

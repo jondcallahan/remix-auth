@@ -1,12 +1,13 @@
 import type { User } from "@prisma/client";
 import { json, redirect } from "remix";
+import invariant from "tiny-invariant";
 import { getAccessTokenCookie, getRefreshTokenCookie } from "../cookies";
 import { db } from "../prisma.server";
 import { createAccessToken, verifyAccessToken } from "./tokens.server";
 
 export type UserWithoutPassword = Omit<User, "hashedPassword">;
 export async function getUserFromCookies(request: Request): Promise<{
-  user: UserWithoutPassword | null;
+  user?: { id: string; emailAddress: string };
   newResponseHeaders: Headers;
 }> {
   const headers = new Headers();
@@ -27,22 +28,22 @@ export async function getUserFromCookies(request: Request): Promise<{
     const verifiedAccessToken = await verifyAccessToken(existingAccessToken);
     // If valid, get user by userID from JWT and return
     if (verifiedAccessToken) {
-      console.log("Verified JWT, looking up user 🪢");
-      const user = await db.user.findUnique({
-        where: {
+      console.log("Verified JWT 🪢  returning user ", verifiedAccessToken);
+      invariant(typeof verifiedAccessToken.payload.sub === "string");
+      invariant(typeof verifiedAccessToken.payload.emailAddress === "string");
+
+      return {
+        user: {
           id: verifiedAccessToken.payload.sub,
+          emailAddress: verifiedAccessToken.payload.emailAddress,
         },
-        select: userFieldsToGet,
-      });
-      if (!user) {
-        throw redirect("/auth/logout");
-      }
-      return { user, newResponseHeaders: headers };
+        newResponseHeaders: headers,
+      };
     }
   }
-  // If invalid or expired try the refresh token
-  console.log("JWT invalid, expired, or not present.");
-  console.log("Looking for refreshToken");
+
+  // If JWT is invalid or expired try the refresh token
+  console.log("No valid JWT found. Looking for refreshToken.");
   const existingRefreshToken =
     (await getRefreshTokenCookie().parse(cookieHeader)) || "";
   // If refresh token exists, lookup the session in the DB by sessionId: refreshToken
@@ -74,7 +75,10 @@ export async function getUserFromCookies(request: Request): Promise<{
     // If the session exists and is not expired
     console.log("refreshToken has matching authSession in DB ✅");
     // Pull the userId off the session and mint a new JWT accessToken
-    const newAccessToken = await createAccessToken(currentSession.userId);
+    const newAccessToken = await createAccessToken(
+      currentSession.userId,
+      currentSession.user.emailAddress
+    );
     const newAccessTokenCookie = await getAccessTokenCookie().serialize(
       newAccessToken
     );
@@ -88,13 +92,47 @@ export async function getUserFromCookies(request: Request): Promise<{
   // Refresh the session so it's not a long-lived bearer token?
   // If session is refreshed, mint a new refreshToken and add that to the response headers
   // Return the user and the new tokens
-  return { user: null, newResponseHeaders: headers };
+  return { user: undefined, newResponseHeaders: headers };
+}
+
+/**
+ * Checks for JWT or valid session without refreshing headers
+ * @param request the request
+ * @returns true if logged in
+ */
+async function __isUserLoggedIn(request: Request) {
+  const cookieHeader = request.headers.get("Cookie");
+  const accessToken = (await getAccessTokenCookie().parse(cookieHeader)) || "";
+  if (accessToken) {
+    const verifiedAccessToken = await verifyAccessToken(accessToken);
+
+    if (verifiedAccessToken) {
+      return true;
+    } else {
+      // TODO: Check refresh here if the token is just expired
+      return false;
+    }
+  }
+  const refreshToken: string | null | undefined =
+    await getRefreshTokenCookie().parse(cookieHeader);
+  if (refreshToken) {
+    const sessionExists = await db.authSession.findUnique({
+      where: {
+        id: refreshToken,
+      },
+    });
+    return !!sessionExists;
+  }
+  return false;
 }
 
 export async function requireUser(
   request: Request,
   redirectTo = "/signin"
-): Promise<{ user: UserWithoutPassword; newResponseHeaders: Headers }> {
+): Promise<{
+  user: { id: string; emailAddress: string };
+  newResponseHeaders: Headers;
+}> {
   const { user, newResponseHeaders } = await getUserFromCookies(request);
 
   if (!user) {

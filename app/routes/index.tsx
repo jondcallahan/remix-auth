@@ -4,6 +4,7 @@ import {
   UserWithoutPassword,
 } from "~/utils/auth/user.server";
 import type { MetaFunction } from "remix";
+import AppShell from "~/components/AppShell";
 
 export const meta: MetaFunction = () => {
   return {
@@ -12,7 +13,6 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader: LoaderFunction = async function ({ request }) {
-  console.log("request", request.body);
   const { user, newResponseHeaders } = await getUserFromCookies(request);
 
   return json(
@@ -24,10 +24,10 @@ export const loader: LoaderFunction = async function ({ request }) {
 };
 
 export default function Index() {
-  const { user }: { user: UserWithoutPassword | null } = useLoaderData();
+  const { user }: { user: UserWithoutPassword | undefined } = useLoaderData();
 
   return (
-    <main className="container">
+    <AppShell user={user}>
       {!user && <h1>Welcome!</h1>}
       {user && (
         <hgroup>
@@ -38,6 +38,6 @@ export default function Index() {
       {user?.emailAddressVerified === false && (
         <strong>Please verify your email address</strong>
       )}
-    </main>
+    </AppShell>
   );
 }

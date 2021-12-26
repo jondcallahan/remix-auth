@@ -1,10 +1,28 @@
-import { Form, useActionData, useSearchParams, useTransition } from "remix";
+import { useEffect, useRef } from "react";
+import {
+  Form,
+  useActionData,
+  useSearchParams,
+  useSubmit,
+  useTransition,
+} from "remix";
 
 export function SignUpSignInForm({ buttonText }: { buttonText: string }) {
   const [searchParams] = useSearchParams();
   const formData = useActionData();
-  console.log("formData", formData);
   const submission = useTransition();
+  const submit = useSubmit();
+  const tokenInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (formData?.needs2faToken) {
+      tokenInputRef.current?.focus();
+    }
+  }, [formData?.needs2faToken]);
+
+  const disabled =
+    submission.state === "submitting" ||
+    (submission.state === "loading" && submission.type === "actionRedirect");
 
   return (
     <>
@@ -26,9 +44,7 @@ export function SignUpSignInForm({ buttonText }: { buttonText: string }) {
           type="email"
           name="email"
           aria-invalid={!!formData?.fieldErrors?.email || undefined}
-          disabled={
-            submission.state === "submitting" || submission.state === "loading"
-          }
+          disabled={disabled}
         />
 
         {formData?.fieldErrors?.password && (
@@ -41,9 +57,7 @@ export function SignUpSignInForm({ buttonText }: { buttonText: string }) {
           type="password"
           name="password"
           aria-invalid={!!formData?.fieldErrors?.password || undefined}
-          disabled={
-            submission.state === "submitting" || submission.state === "loading"
-          }
+          disabled={disabled}
         />
 
         {formData?.fieldErrors?.token && (
@@ -60,23 +74,23 @@ export function SignUpSignInForm({ buttonText }: { buttonText: string }) {
               placeholder="123456"
               autoComplete="one-time-code"
               aria-invalid={!!formData?.fieldErrors?.token || undefined}
-              disabled={
-                submission.state === "submitting" ||
-                submission.state === "loading"
-              }
+              disabled={disabled}
+              ref={tokenInputRef}
+              onPaste={(e) => {
+                const value = e.clipboardData.getData("Text");
+                // If user pastes the token, automatically submit the form
+                if (value.length === 6) {
+                  // Manually set the value to the pasted value since onPaste fires before the value changes
+                  e.currentTarget.value = value;
+
+                  submit(e.currentTarget.form);
+                }
+              }}
             />
           </>
         )}
 
-        <button
-          type="submit"
-          aria-busy={
-            submission.state === "submitting" || submission.state === "loading"
-          }
-          disabled={
-            submission.state === "submitting" || submission.state === "loading"
-          }
-        >
+        <button type="submit" aria-busy={disabled} disabled={disabled}>
           {buttonText}
         </button>
       </Form>

@@ -6,6 +6,7 @@ import type { MetaFunction } from "remix";
 import { SignUpSignInForm } from "~/components/SignUpSignInForm";
 import { signUserIn } from "~/utils/auth/signUserIn";
 import { badRequest } from "~/utils/net";
+import AppShell from "~/components/AppShell";
 
 export const meta: MetaFunction = () => {
   return {
@@ -41,7 +42,11 @@ export const action: ActionFunction = async ({ request }) => {
     const user = await createUser({ email, rawPassword });
 
     await sendVerificationEmail(email);
-    return signUserIn(user.id, redirectTo, request);
+    return signUserIn(
+      { userId: user.id, emailAddress: email },
+      redirectTo,
+      request
+    );
   } catch (error) {
     console.error("error", error);
     return badRequest({
@@ -52,9 +57,9 @@ export const action: ActionFunction = async ({ request }) => {
 
 export default function Signup() {
   return (
-    <main className="container">
+    <AppShell>
       <h1>Sign up for our App!</h1>
       <SignUpSignInForm buttonText="Sign up!" />
-    </main>
+    </AppShell>
   );
 }

@@ -1,5 +1,9 @@
+import { AuthSession } from "@prisma/client";
 import { compare } from "bcryptjs";
+import uaParser from "ua-parser-js";
+import { getRefreshTokenCookie } from "../cookies";
 import { hashPassword } from "../hash.server";
+import { authenticator } from "./twoFactor.server";
 import { db } from "../prisma.server";
 
 type AuthForm = {
@@ -23,6 +27,8 @@ export async function createUser({ email, rawPassword }: AuthForm) {
 }
 
 export async function authenticateUser({ email, rawPassword }: AuthForm) {
+  console.log("/// Authenticate user");
+
   const user = await db.user.findUnique({
     where: {
       emailAddress: email,
@@ -57,32 +63,71 @@ export async function authenticateUser({ email, rawPassword }: AuthForm) {
 export async function updateUserPassword(
   email: string,
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
+  token?: string
 ) {
   const { userId } = await authenticateUser({
     email,
     rawPassword: currentPassword,
   });
 
-  if (userId) {
-    const hashedPassword = await hashPassword(newPassword);
-    await db.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        hashedPassword,
-      },
-    });
-    return true;
+  if (!userId) {
+    throw { errorType: "INCORRECT_PASSWORD" };
   }
-  return false;
+
+  const has2FA = await db.twoFactorAuthTokens.findFirst({
+    where: {
+      userId,
+    },
+  });
+
+  if (!!has2FA) {
+    if (!token) {
+    }
+    const isValidToken = await authenticator.check(token, has2FA.secret);
+    if (!isValidToken) {
+      throw { errorType: "INVALID_TOKEN" };
+    }
+  }
+  const hashedPassword = await hashPassword(newPassword);
+  await db.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      hashedPassword,
+    },
+  });
+  return true;
 }
 
 export async function removeAuthSessionFromDB(id: string) {
   try {
-    await db.authSession.delete({ where: { id } });
+    return await db.authSession.delete({ where: { id } });
   } catch (error) {
     console.error("removeAuthSessionFromDB error", error);
   }
+}
+
+export function formatAuthSessionRes(
+  sessions: AuthSession[],
+  currentSessionId: string
+) {
+  return sessions.map((session) => {
+    const { os, browser } = uaParser(session.userAgent);
+
+    return {
+      ...session,
+      enriched: {
+        os,
+        browser,
+        isCurrentSession: session.id === currentSessionId,
+      },
+    };
+  });
+}
+
+export async function getCurrentSessionId(request: Request) {
+  const cookieHeader = request.headers.get("Cookie");
+  return await getRefreshTokenCookie().parse(cookieHeader);
 }

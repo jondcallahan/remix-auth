@@ -15,21 +15,21 @@
   - [] Flow chart
 
 - [x] Set new password while logged in
-  - [] Add 2fa
-  - [x] Flow chart https://app.tryeraser.com/workspace/Ux7uEd81hYSDUhMqkhOa?elements=vDFvAa62fJNvZVaQAEhc3Q
+  - [x] Add 2fa
+  - [x] [Flow chart](https://app.tryeraser.com/workspace/Ux7uEd81hYSDUhMqkhOa?elements=vDFvAa62fJNvZVaQAEhc3Q)
 
-- [-] Set 2FA with QR code
+- [x] Set 2FA with QR code
   - [x] Store secret in DB after user scans QR code and verifies
-  - [] Handle case where user enters incorrect token after scanning QR code
+  - [x] Handle case where user enters incorrect token after scanning QR code
   - [] Add backup codes
-  - [] Flow chart
+  - [x] [Flow chart](https://app.tryeraser.com/workspace/Ux7uEd81hYSDUhMqkhOa?elements=QidYqEQ9C9LDuJvF5y_l6Q)
 
-- [] Login with 2FA
+- [x] Login with 2FA
   - [] Verify if this needs to be added anywhere else?
   - [] Flow chart
 
-- [] List other sessions
+- [x] List other sessions
   - [] Flow chart
 
-- [] Remove unrecognized session
+- [x] Remove unrecognized session
   - [] Flow chart
