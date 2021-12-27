@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { db } from "../prisma.server";
 import { getClientIp } from "@supercharge/request-ip/dist";
+import { getRequestIpAddress } from "../net";
 
 export const { SESSION_SECRET } = process.env;
 
@@ -53,7 +54,11 @@ export async function createRefreshToken(
   request: Request,
   expiresAt: Date
 ) {
-  const ipAddress = getClientIp(request) || "";
+  const ipAddress =
+    getClientIp(request) || request.headers.get("x-forwarded-for") || "";
+  console.log("ipAddress ", ipAddress);
+  console.log("getClientIp", getRequestIpAddress(request));
+
   const userAgent = request.headers.get("user-agent") || "";
 
   const storedSession = await db.authSession.create({
