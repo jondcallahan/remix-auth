@@ -33,6 +33,8 @@ export const getRequestIpAddress = (request: Request) => {
   for (const header of IP_HEADERS) {
     const value = headers.get(header);
     if (value) {
+      console.log("Found value at: ", header);
+
       const parts = value.split(/\s*,\s*/g);
       return parts[0] ?? null;
     }
