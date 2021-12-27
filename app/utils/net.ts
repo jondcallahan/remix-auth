@@ -31,7 +31,7 @@ const IP_HEADERS = [
 export const getRequestIpAddress = (request: Request) => {
   const headers = request.headers;
   for (const header of IP_HEADERS) {
-    const value = headers[header];
+    const value = headers.get(header);
     if (value) {
       const parts = value.split(/\s*,\s*/g);
       return parts[0] ?? null;

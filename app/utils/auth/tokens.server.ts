@@ -54,10 +54,9 @@ export async function createRefreshToken(
   request: Request,
   expiresAt: Date
 ) {
-  const ipAddress =
-    getClientIp(request) || request.headers.get("x-forwarded-for") || "";
-  console.log("ipAddress ", ipAddress);
-  console.log("getClientIp", getRequestIpAddress(request));
+  const ipAddress = getClientIp(request) ?? "";
+  console.log("🔎 getClientIp ", ipAddress);
+  console.log("🔎 getRequestIpAddress", getRequestIpAddress(request));
 
   const userAgent = request.headers.get("user-agent") || "";
 
