@@ -16,6 +16,8 @@ import { authenticateUser } from "~/utils/auth/authSession.server";
 import { badRequest } from "~/utils/net";
 import { db } from "~/utils/prisma.server";
 
+export const meta = () => ({ title: "Two-factor Authentication | Remix Auth" });
+
 export const loader: LoaderFunction = async ({ request }) => {
   const { user, newResponseHeaders: headers } = await requireUser(
     request,
@@ -111,7 +113,7 @@ export default function Register2FA() {
           </Form>
         </>
       )}
-      {!data?.has2fa && <p>Register your 2fa</p>}
+      {!data?.has2fa && <p>Scan QR code with your authenticator app</p>}
       {data?.keyURI && (
         <>
           <img
@@ -132,7 +134,7 @@ export default function Register2FA() {
               autoComplete="one-time-code"
               autoFocus
             />
-            <button type="submit">Register 2FA</button>
+            <button type="submit">Enable 2FA</button>
           </Form>
         </>
       )}
