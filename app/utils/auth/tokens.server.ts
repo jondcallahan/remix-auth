@@ -2,7 +2,6 @@ import invariant from "tiny-invariant";
 import crypto from "crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { db } from "../prisma.server";
-import { getClientIp } from "@supercharge/request-ip";
 import { getRequestIpAddress } from "../net";
 
 export const { SESSION_SECRET } = process.env;
@@ -55,9 +54,8 @@ export async function createRefreshToken(
   request: Request,
   expiresAt: Date
 ) {
-  const ipAddress = getClientIp(request) ?? getRequestIpAddress(request) ?? "";
-  console.log("🔎 getClientIp ", getClientIp(ipAddress));
-  console.log("🔎 getRequestIpAddress", getRequestIpAddress(request));
+  const ipAddress = getRequestIpAddress(request) ?? "";
+  console.log("🔎 getRequestIpAddress", ipAddress);
 
   const userAgent = request.headers.get("user-agent") || "";
 
