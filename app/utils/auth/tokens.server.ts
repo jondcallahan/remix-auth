@@ -2,7 +2,7 @@ import invariant from "tiny-invariant";
 import crypto from "crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { db } from "../prisma.server";
-import { getClientIp } from "@supercharge/request-ip/dist";
+import { getClientIp } from "@supercharge/request-ip";
 import { getRequestIpAddress } from "../net";
 
 export const { SESSION_SECRET } = process.env;
@@ -27,6 +27,7 @@ export function getAccessTokenTimeToLive() {
 }
 
 export async function createAccessToken(userId: string, emailAddress: string) {
+  console.log("// Mint a new JWT 🍀");
   const key = await getJWTSigningKey();
   const expirationTime = `${getAccessTokenTimeToLive()}s`;
 

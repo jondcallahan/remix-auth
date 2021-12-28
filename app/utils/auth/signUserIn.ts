@@ -1,7 +1,5 @@
-import { getClientIp } from "@supercharge/request-ip/dist";
 import { redirect } from "remix";
 import { getAccessTokenCookie, getRefreshTokenCookie } from "../cookies";
-import { db } from "../prisma.server";
 import { get30DaysFromNow } from "../time";
 import { createAccessToken, createRefreshToken } from "./tokens.server";
 

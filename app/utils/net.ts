@@ -30,6 +30,8 @@ const IP_HEADERS = [
 
 export const getRequestIpAddress = (request: Request) => {
   const headers = request.headers;
+  console.log("getRequestIpAddress", headers);
+
   for (const header of IP_HEADERS) {
     const value = headers.get(header);
     if (value) {

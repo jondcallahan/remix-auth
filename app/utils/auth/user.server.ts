@@ -6,6 +6,7 @@ import { db } from "../prisma.server";
 import { createAccessToken, verifyAccessToken } from "./tokens.server";
 
 export type UserWithoutPassword = Omit<User, "hashedPassword">;
+
 export async function getUserFromCookies(request: Request): Promise<{
   user?: { id: string; emailAddress: string };
   newResponseHeaders: Headers;
