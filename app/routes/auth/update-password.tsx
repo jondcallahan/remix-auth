@@ -133,6 +133,7 @@ export default function UpdatePassword() {
               type="text"
               name="token"
               autoComplete="one-time-code"
+              inputMode="numeric"
               aria-invalid={!!formData?.fieldErrors?.token || undefined}
               disabled={disabled}
               required

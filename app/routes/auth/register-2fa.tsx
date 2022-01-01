@@ -132,6 +132,7 @@ export default function Register2FA() {
               name="token"
               placeholder="123456"
               autoComplete="one-time-code"
+              inputMode="numeric"
               autoFocus
             />
             <button type="submit">Enable 2FA</button>

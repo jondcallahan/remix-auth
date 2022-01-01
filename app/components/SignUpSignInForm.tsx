@@ -73,6 +73,7 @@ export function SignUpSignInForm({ buttonText }: { buttonText: string }) {
               name="token"
               placeholder="123456"
               autoComplete="one-time-code"
+              inputMode="numeric"
               aria-invalid={!!formData?.fieldErrors?.token || undefined}
               disabled={disabled}
               ref={tokenInputRef}
